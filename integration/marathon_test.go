@@ -46,9 +46,11 @@ func (s *MarathonSuite) TestConfigurationUpdate(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cmd.Process.Kill()
 
-	fmt.Println("waiting for Marathon to become available")
+	marathonHost := s.composeProject.Container(c, "marathon").NetworkSettings.IPAddress
+	marathonURL := fmt.Sprintf("http://%s:8080", marathonHost)
+	fmt.Printf("polling Marathon URL %s for availability\n", marathonURL)
 	// wait for marathon
-	err = utils.TryRequest("http://127.0.0.1:8080/ping", 60*time.Second, func(res *http.Response) error {
+	err = utils.TryRequest(fmt.Sprintf("%s/ping", marathonURL), 60*time.Second, func(res *http.Response) error {
 		res.Body.Close()
 		return nil
 	})
@@ -56,7 +58,7 @@ func (s *MarathonSuite) TestConfigurationUpdate(c *check.C) {
 
 	// Prepare Marathon client.
 	config := marathon.NewDefaultConfig()
-	config.URL = "http://127.0.0.1:8080"
+	config.URL = marathonURL
 	client, err := marathon.NewClient(config)
 	c.Assert(err, checker.IsNil)
 
